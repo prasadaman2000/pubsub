@@ -164,6 +164,8 @@ func main() {
 	address := flag.String("address", "0.0.0.0", "--address defines the address to bind the server to.")
 	port := flag.Int("port", 8080, "--port defines the port to bind the server to.")
 
+	flag.Parse()
+
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Hello, this is your Go HTTP server!")
 	})
