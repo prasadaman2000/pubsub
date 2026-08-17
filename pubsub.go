@@ -23,6 +23,7 @@ Publish:
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
 	"io"
 	"net/http"
@@ -160,6 +161,8 @@ func (p *PubSubHandler) PublishHandler() func(w http.ResponseWriter, r *http.Req
 
 func main() {
 	handler := NewPubSubHandler()
+	address := flag.String("address", "0.0.0.0", "--address defines the address to bind the server to.")
+	port := flag.Int("port", 8080, "--port defines the port to bind the server to.")
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Hello, this is your Go HTTP server!")
@@ -168,6 +171,7 @@ func main() {
 	http.HandleFunc("/subscribe", handler.SubscribeHandler())
 	http.HandleFunc("/publish", handler.PublishHandler())
 
-	fmt.Println("Server listening on :8080")
-	http.ListenAndServe(":8080", nil)
+	listenAddr := fmt.Sprintf("%s:%d", *address, *port)
+	fmt.Printf("Server listening on %s\n", listenAddr)
+	http.ListenAndServe(listenAddr, nil)
 }
