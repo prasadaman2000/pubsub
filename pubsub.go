@@ -76,7 +76,8 @@ func (p *PubSubHandler) Unsubscribe(topic string, peerIp string, peerPort int) *
 
 func (p *PubSubHandler) WriteData(peer *Peer, topic string, message []byte) {
 	url := peer.Url() + "?topic=" + topic
-	resp, err := http.Post(url, "application/octet-stream", bytes.NewBuffer(message))
+	fmt.Printf("[3. pubsub WriteData] Forwarding to peer %s: %d bytes\n", peer.Url(), len(message))
+	resp, err := http.Post(url, "application/octet-stream", bytes.NewReader(message))
 	if err != nil {
 		fmt.Printf("topic: %s, peer: %v failed with error %v\n", topic, peer, err)
 		return
