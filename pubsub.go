@@ -28,6 +28,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"sync"
 )
 
 type Peer struct {
@@ -41,11 +42,13 @@ func (p *Peer) Url() string {
 
 type PubSubHandler struct {
 	subs map[string][]*Peer
+	mu   sync.Mutex
 }
 
 func NewPubSubHandler() *PubSubHandler {
 	return &PubSubHandler{
 		subs: make(map[string][]*Peer),
+		mu:   sync.Mutex{},
 	}
 }
 
@@ -55,6 +58,8 @@ func (p *PubSubHandler) Subscribe(topic string, peerIp string, peerPort int) (*P
 		ip:   peerIp,
 		port: peerPort,
 	}
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	if _, ok := p.subs[topic]; !ok {
 		p.subs[topic] = []*Peer{}
 	}
@@ -63,6 +68,8 @@ func (p *PubSubHandler) Subscribe(topic string, peerIp string, peerPort int) (*P
 }
 
 func (p *PubSubHandler) Unsubscribe(topic string, peerIp string, peerPort int) *Peer {
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	if peerList, ok := p.subs[topic]; ok {
 		for idx, peer := range peerList {
 			if peer.ip == peerIp && peer.port == peerPort {
@@ -76,7 +83,6 @@ func (p *PubSubHandler) Unsubscribe(topic string, peerIp string, peerPort int) *
 
 func (p *PubSubHandler) WriteData(peer *Peer, topic string, message []byte) {
 	url := peer.Url() + "?topic=" + topic
-	fmt.Printf("[3. pubsub WriteData] Forwarding to peer %s: %d bytes\n", peer.Url(), len(message))
 	resp, err := http.Post(url, "application/octet-stream", bytes.NewReader(message))
 	if err != nil {
 		fmt.Printf("topic: %s, peer: %v failed with error %v\n", topic, peer, err)
@@ -90,6 +96,8 @@ func (p *PubSubHandler) WriteData(peer *Peer, topic string, message []byte) {
 }
 
 func (p *PubSubHandler) Publish(topic string, message []byte) error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	if peerList, ok := p.subs[topic]; !ok {
 		return fmt.Errorf("Publish: could not find topic %s", topic)
 	} else {
