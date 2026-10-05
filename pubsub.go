@@ -3,16 +3,11 @@ package main
 /*
 Methods supported:
 	Subscribe
-	Unsubscribe
 	Publish
 
 Subscribe:
 	takes topic name, client ip:port
 	adds ip:port to list of subscribers to topic
-
-Unsubscribe:
-	takes topic name, client ip:port
-	removes ip:port from list of subscribers to topic
 
 Publish:
 	takes topic name, message
@@ -52,14 +47,28 @@ func NewPubSubHandler() *PubSubHandler {
 	}
 }
 
+func (p *PubSubHandler) GetExistingPeer(topic string, peerIp string, peerPort int) *Peer {
+	for _, peer := range p.subs[topic] {
+		if (peer.ip == peerIp) && (peer.port == peerPort) {
+			return peer
+		}
+	}
+
+	return nil
+}
+
 func (p *PubSubHandler) Subscribe(topic string, peerIp string, peerPort int) (*Peer, error) {
-	p.Unsubscribe(topic, peerIp, peerPort)
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	if existingPeer := p.GetExistingPeer(topic, peerIp, peerPort); existingPeer != nil {
+		return existingPeer, nil
+	}
+
 	newPeer := &Peer{
 		ip:   peerIp,
 		port: peerPort,
 	}
-	p.mu.Lock()
-	defer p.mu.Unlock()
 	if _, ok := p.subs[topic]; !ok {
 		p.subs[topic] = []*Peer{}
 	}
